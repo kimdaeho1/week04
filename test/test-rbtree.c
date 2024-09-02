@@ -20,7 +20,7 @@ void test_init(void) {
 // root node should have proper values and pointers
 void test_insert_single(const key_t key) {
   rbtree *t = new_rbtree();
-  node_t *p = rbtree_insert(t, key);
+  node_t *p = rbtree_insert(t, key); //t와 key를 인자로 받아서 새 노드를 삽입하고 노드의 주소를 반환
   assert(p != NULL);
   assert(t->root == p);
   assert(p->key == key);

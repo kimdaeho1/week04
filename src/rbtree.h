@@ -7,15 +7,15 @@ typedef enum { RBTREE_RED, RBTREE_BLACK } color_t;
 
 typedef int key_t;
 
-typedef struct node_t {
-  color_t color;
-  key_t key;
-  struct node_t *parent, *left, *right;
-} node_t;
+typedef struct node_t { // 개별 노드를 나타낸다
+  color_t color;  
+  key_t key;  //노드의 숫자값
+  struct node_t *parent, *left, *right; //부모, 왼쪽자식, 오른쪽 자식의포인터
+} node_t; 
 
 typedef struct {
-  node_t *root;
-  node_t *nil;  // for sentinel
+  node_t *root; //트리의 루트노드를 가리키는 포인터.
+  node_t *nil;  // for sentinel 트리의 경계를 나타내는 sentinel역할.
 } rbtree;
 
 rbtree *new_rbtree(void);
