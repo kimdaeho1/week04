@@ -45,6 +45,7 @@ void rotate_left(rbtree *t, node_t *target){
   //왼쪽 회전, 내가 올라가고, 나의 부모가 내 왼쪽 자식이 되게 하는 것.
   node_t*next = target->right;  //부모의 오른쪽자식이 부모가 되게 하기
   target->right = next->left; //내 왼쪽 자식이 부모의 오른쪽 자식
+                              //아래에서 똑같이, 자식을 데려와야함(회전할떄)
 
   if (next->left != t->nil){
     next->left->parent = target;
@@ -69,6 +70,8 @@ void rotate_right(rbtree *t, node_t *target){
   //오른쪽 회전, 내가 올라가고, 나의 부모가 내 오른쪽 자식이 되게 하는것.
   node_t*next = target->left; //타겟의 왼쪽 자식이 next가 된다.
   target->left = next->right; //next의 오른쪽 자식이 타겟의 왼쪽 자식이 된다.
+                              //회전할때, target의 왼쪽 자식이 없으니가
+                              // next의 오른쪽 자식을 데려온다는 소리임.
 
   if (next->right != t->nil){ //next오른쪽 자식이 닐노드가 아니면
     next->right->parent = target; //next의 오른쪽 자식의 부모가 target
@@ -88,44 +91,41 @@ void rotate_right(rbtree *t, node_t *target){
 
 void check_and_correct(rbtree *t, node_t *r) {
     while (r->parent->color == RBTREE_RED) { // 부모가 빨간색인 동안 루프 실행
-        node_t *p = r->parent;  // 부모노드
-        node_t *gp = p->parent; // 조부모 노드
-
-        if (p == gp->left) { // 부모가 조부모의 왼쪽 자녀일 때
-            node_t *uncle = gp->right; // 삼촌 노드
-
+          //이중포인터 가능? **Gp  //이 node_t *gp = p->parent; 이걸 선언했을때, 아래의 else문의 존재여부를 파악하기.
+        if (r->parent == r->parent->parent->left) { // 부모가 조부모의 왼쪽 자녀일 때
+            node_t*uncle = r->parent->parent->right; // 삼촌 노드
             if (uncle->color == RBTREE_RED) { // 삼촌이 빨간색인 경우
-                p->color = RBTREE_BLACK;      //부모를 블랙
+                r->parent->color = RBTREE_BLACK;      //부모를 블랙
                 uncle->color = RBTREE_BLACK;  //삼촌을 블랙
-                gp->color = RBTREE_RED;       //조부모와 그 자녀들의 색을 바꾼후
-                r = gp;                       // 루프를 계속해서 위로 이동
+                r->parent->parent->color = RBTREE_RED;       //조부모와 그 자녀들의 색을 바꾼후
+                r = r->parent->parent;                       // 루프를 계속해서 위로 이동
             } else {
-                if (r == p->right) { // 노드가 부모의 오른쪽 자녀인 경우
-                    r = p;            // 부모가 target이 되서 회전해야 하므로
+                if (r == r->parent->right) { // 노드가 부모의 오른쪽 자녀인 경우
+                    r = r->parent;            // 부모가 target이 되서 회전해야 하므로
                     rotate_left(t, r); // 왼쪽 회전
-                } else {
+                }   //d이유 찾기 ////????????????????????? 이거 else안써야되는데
                 r->parent->color = RBTREE_BLACK; //그리고 부모의 색깔과
-                gp->color = RBTREE_RED;         //조부의 색깔을 바꾸고
-                rotate_right(t, gp);          // 오른쪽 회전
-                } 
-            }
+                r->parent->parent->color = RBTREE_RED;         //조부의 색깔을 바꾸고
+                rotate_right(t, r->parent->parent);          // 오른쪽 회전
+            
+          }
         } else { // 부모가 조부모의 오른쪽 자녀일 때
-            node_t *uncle = gp->left; // 삼촌 노드
-
+            node_t *uncle = r->parent->parent->left; // 삼촌 노드
             if (uncle->color == RBTREE_RED) { // 삼촌이 빨간색인 경우
-                p->color = RBTREE_BLACK;      //아까랑 똑같이~
+                r->parent->color = RBTREE_BLACK;      //아까랑 똑같이~
                 uncle->color = RBTREE_BLACK;
-                gp->color = RBTREE_RED;
-                r = gp; // 루프를 계속해서 위로 이동
+                r->parent->parent->color = RBTREE_RED;
+                r = r->parent->parent; // 루프를 계속해서 위로 이동
             } else {
-                if (r == p->left) { // 노드가 부모의 왼쪽 자녀인 경우
-                    r = p;
+                if (r == r->parent->left) { // 노드가 부모의 왼쪽 자녀인 경우
+                    r = r->parent;
                     rotate_right(t, r); // 오른쪽 회전
-                } else {
+                } 
                 r->parent->color = RBTREE_BLACK;
-                gp->color = RBTREE_RED;
-                rotate_left(t, gp); 
-                } // 왼쪽 회전
+                r->parent->parent->color = RBTREE_RED;
+                rotate_left(t, r->parent->parent); 
+                 // 왼쪽 회전
+                
             }
         }
     }
@@ -208,26 +208,26 @@ node_t *rbtree_max(const rbtree *t) {
 }
 
 void transplant (rbtree *t, node_t*del, node_t*replace) {
-  if (del->parent == t->nil) {
-    t->root = replace;
-  } else if (del == del->parent->left) {
+  if (del->parent == t->nil) {    //del이 지우는 주체, replace가 대체하는 노드
+    t->root = replace;            // 만약 부모가 nil노드를 가리키고 있다면, 루트노드다
+  } else if (del == del->parent->left) {  
     del->parent->left = replace;
   } else {
     del->parent->right = replace;
   } 
-   // if (replace != t->nil) //을 지우니까 성공했따
+   // if (replace != t->nil) //을 지우니까 성공했다. 왜????????
     replace->parent = del->parent;
 }
 
 
 void check_erase_correct(rbtree *t, node_t *target) {
-  while (target != t->root && target->color == RBTREE_BLACK) {
-    if (target == target->parent->left) {
-      node_t *uncle = target->parent->right;
-      if (uncle->color == RBTREE_RED) {
-        uncle->color = RBTREE_BLACK;
-        target->parent->color = RBTREE_RED;
-        rotate_left(t, target->parent);
+  while (target != t->root && target->color == RBTREE_BLACK) {  //둘다 블랙?
+    if (target == target->parent->left) {   //target의의 노드가 루트가 아니고, 노드 색깔이 검정색일 때까지 루프 반복
+      node_t *uncle = target->parent->right;  
+      if (uncle->color == RBTREE_RED) { //만약 삼촌이 red라면
+        uncle->color = RBTREE_BLACK;    //삼촌을 블랙으로 만들고
+        target->parent->color = RBTREE_RED; // 타겟 부모 컬러가 레드, 회전시키기 위해
+        rotate_left(t, target->parent); // 왼쪽으로 회전시키기
         uncle = target->parent->right;
       }
       if (uncle->left->color == RBTREE_BLACK && uncle->right->color == RBTREE_BLACK) {
@@ -267,7 +267,7 @@ void check_erase_correct(rbtree *t, node_t *target) {
           rotate_left(t, uncle);
           uncle = target->parent->left;
         }
-        uncle->color = target->parent->color;
+        uncle->color = target->parent->color; //아니 근데 여기는 안적었는데 ^^ㅣ발?
         target->parent->color = RBTREE_BLACK;
         uncle->left->color = RBTREE_BLACK;
         rotate_right(t, target->parent);
